@@ -1,33 +1,35 @@
 import requests
-import matplotlib.pyplot as plt
+import json
 
-# --- Step 1: Set your parameters ---
-symbol = "AAPL"
+# --- Bright Data Proxy Gateway Config ---
+PROXY_HOST = "brd.superproxy.io"
+PROXY_PORT = "port"
+PROXY_USER = "user_name"
+PROXY_PASS = "password"
+
+# --- Build proxy config for requests ---
+proxy_url = f"http://{PROXY_USER}:{PROXY_PASS}@{PROXY_HOST}:{PROXY_PORT}"
+proxies = {"http": proxy_url, "https": proxy_url}
+
+# --- Yahoo Finance API config ---
+symbol = "NVDA"
 range_ = "1mo"
 interval = "1d"
-
-# --- Step 2: Build the API URL ---
 url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range={range_}&interval={interval}"
 
-# --- Step 3: Make the request ---
-response = requests.get(url)
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+}
+
+# --- Make request through Bright Data proxy ---
+try:
+    print(f"🔄 Fetching stock data for {symbol} through Bright Data proxy...")
+    response = requests.get(url, headers=headers, proxies=proxies, timeout=10)
+
+    print("✅ Status Code:", response.status_code)
+    print("📄 Response Preview:")
+except requests.exceptions.RequestException as e:
+    print(f"❌ Proxy request failed: {e}")
+
 data = response.json()
-
-# --- Step 4: Extract and process data ---
-timestamps = data['chart']['result'][0]['timestamp']
-prices = data['chart']['result'][0]['indicators']['quote'][0]['close']
-
-# Optional: Convert Unix timestamps to dates (for better x-axis labels)
-from datetime import datetime
-dates = [datetime.fromtimestamp(ts).strftime('%Y-%m-%d') for ts in timestamps]
-
-# --- Step 5: Plot the graph ---
-plt.figure(figsize=(10, 5))
-plt.plot(dates, prices, marker='o')
-plt.title(f"{symbol} Stock Price Over {range_}")
-plt.xlabel("Date")
-plt.ylabel("Close Price (USD)")
-plt.xticks(rotation=45)
-plt.grid(True)
-plt.tight_layout()
-plt.show()
+print(json.dumps(data, indent=2))
